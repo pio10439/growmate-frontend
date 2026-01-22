@@ -12,8 +12,10 @@ import {
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { useTheme } from "../context/ThemeContext";
 
 export default function LoginScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,23 +31,24 @@ export default function LoginScreen({ navigation }) {
       await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
-        password
+        password,
       );
-      navigation.replace("HomeScreen");
     } catch (error) {
       let message = "Nie udało się zalogować";
       if (
         error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
       ) {
-        message = "Nieprawidłowy email lub hasło";
+        message = "Nieprawidłowy email lub hasło.";
       } else if (error.code === "auth/invalid-email") {
-        message = "Nieprawidłowy format email";
+        message = "Nieprawidłowy format email.";
       } else if (error.code === "auth/too-many-requests") {
         message = "Zbyt wiele prób. Spróbuj później.";
+      } else if (error.code === "auth/network-request-failed") {
+        message = "Brak połączenia z internetem.";
       }
       Alert.alert("Błąd logowania", message);
-      console.log("FireBase message:", error);
     } finally {
       setLoading(false);
     }
@@ -53,18 +56,29 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Witaj w GrowMate 🌱</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.primary }]}>
+          Witaj w GrowMate 🌱
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Zaloguj się, by zadbać o swoje rośliny
         </Text>
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "#333" : "transparent",
+            },
+          ]}
           placeholder="Email"
+          placeholderTextColor={isDark ? "#888" : "#999"}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -73,8 +87,17 @@ export default function LoginScreen({ navigation }) {
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "#333" : "transparent",
+            },
+          ]}
           placeholder="Hasło"
+          placeholderTextColor={isDark ? "#888" : "#999"}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -82,7 +105,11 @@ export default function LoginScreen({ navigation }) {
         />
 
         <TouchableOpacity
-          style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+          style={[
+            styles.loginBtn,
+            { backgroundColor: colors.primary },
+            loading && styles.loginBtnDisabled,
+          ]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -97,8 +124,11 @@ export default function LoginScreen({ navigation }) {
           style={styles.registerLink}
           onPress={() => navigation.navigate("Register")}
         >
-          <Text style={styles.registerText}>
-            Nie masz konta? <Text style={styles.bold}>Zarejestruj się</Text>
+          <Text style={[styles.registerText, { color: colors.textSecondary }]}>
+            Nie masz konta?{" "}
+            <Text style={[styles.bold, { color: colors.primary }]}>
+              Zarejestruj się
+            </Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -109,7 +139,6 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
   inner: {
     flex: 1,
@@ -119,18 +148,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
     marginBottom: 40,
   },
   input: {
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
@@ -142,7 +168,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   loginBtn: {
-    backgroundColor: "#2e7d32",
     padding: 18,
     borderRadius: 16,
     alignItems: "center",
@@ -150,7 +175,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   loginBtnDisabled: {
-    backgroundColor: "#81c784",
+    opacity: 0.6,
   },
   loginText: {
     color: "white",
@@ -163,10 +188,8 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: 16,
-    color: "#666",
   },
   bold: {
     fontWeight: "bold",
-    color: "#2e7d32",
   },
 });

@@ -1,7 +1,8 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { TouchableOpacity, View, Platform } from "react-native";
+import { TouchableOpacity, View, Platform, StyleSheet } from "react-native";
+import { useTheme } from "../context/ThemeContext";
 
 import HomeScreen from "../screens/HomeScreen";
 import CalendarScreen from "../screens/CalendarScreen";
@@ -12,16 +13,18 @@ import SettingsScreen from "../screens/SettingsScreen";
 const Tab = createBottomTabNavigator();
 
 export default function AppNavigator() {
+  const { colors, isDark } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2e7d32",
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: "#888",
         tabBarStyle: {
-          backgroundColor: "white",
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
+          borderTopColor: isDark ? "#333" : "#e0e0e0",
           height: 77,
           paddingTop: 1,
           paddingBottom: Platform.OS === "ios" ? 10 : 12,
@@ -47,7 +50,7 @@ export default function AppNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: "Rośliny",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="sprout" size={28} color={color} />
           ),
         }}
@@ -58,7 +61,7 @@ export default function AppNavigator() {
         component={CalendarScreen}
         options={{
           tabBarLabel: "Kalendarz",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Ionicons name="calendar-outline" size={28} color={color} />
           ),
         }}
@@ -78,7 +81,15 @@ export default function AppNavigator() {
                 marginBottom: Platform.OS === "ios" ? 0 : -10,
               }}
             >
-              <View style={styles.floatingButton}>
+              <View
+                style={[
+                  styles.floatingButton,
+                  {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.card,
+                  },
+                ]}
+              >
                 <Ionicons name="add" size={36} color="white" />
               </View>
             </TouchableOpacity>
@@ -91,7 +102,7 @@ export default function AppNavigator() {
         component={InspirationsScreen}
         options={{
           tabBarLabel: "Inspiracje",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="lightbulb-on-outline"
               size={28}
@@ -106,7 +117,7 @@ export default function AppNavigator() {
         component={SettingsScreen}
         options={{
           tabBarLabel: "Ustawienia",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Ionicons name="settings-outline" size={28} color={color} />
           ),
         }}
@@ -115,11 +126,10 @@ export default function AppNavigator() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   floatingButton: {
     width: 64,
     height: 64,
-    backgroundColor: "#2e7d32",
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
@@ -129,6 +139,5 @@ const styles = {
     shadowRadius: 12,
     elevation: 15,
     borderWidth: 4,
-    borderColor: "white",
   },
-};
+});

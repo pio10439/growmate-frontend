@@ -10,6 +10,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import PlantDetailsScreen from "./screens/PlantDetailsScreen";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const Stack = createStackNavigator();
 
@@ -51,21 +52,26 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="Main" component={AppNavigator} />
-            <Stack.Screen name="PlantDetails" component={PlantDetailsScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {user ? (
+            <>
+              <Stack.Screen name="Main" component={AppNavigator} />
+              <Stack.Screen
+                name="PlantDetails"
+                component={PlantDetailsScreen}
+              />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Register" component={RegisterScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }
 

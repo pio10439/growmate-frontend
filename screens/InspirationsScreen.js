@@ -9,31 +9,44 @@ import {
   ScrollView,
 } from "react-native";
 import { authorizedRequest } from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
-export default function InspirationsScreen({ navigation }) {
+const capitalize = (text) => {
+  if (!text) return "";
+  let cleaned = String(text).replace(/_/g, " ").toLowerCase();
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
+
+export default function InspirationsScreen() {
+  const { isDark, colors } = useTheme();
   const [plant, setPlant] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRandomPlant = async () => {
     setLoading(true);
     try {
-      const res = await authorizedRequest({ url: "/funfact", method: "GET" });
+      const res = await authorizedRequest({
+        url: "/funfact?force=true",
+        method: "GET",
+      });
       setPlant(res.data);
+      console.log(res.data);
     } catch (error) {
-      console.error("Błąd pobierania rośliny dnia:", error);
+      console.error("Błąd pobierania rośliny:", error);
       setPlant({
-        commonName: "Sansewieria",
-        scientificName: "Sansevieria trifasciata",
+        commonName: "Monstera deliciosa",
+        scientificName: "Monstera deliciosa",
         description:
-          "Jedna z najodporniejszych roślin! Oczyszcza powietrze nawet w nocy dzięki specjalnemu typowi fotosyntezy.",
-        cycle: "Wieloletnia",
-        watering: "Rzadkie",
-        sunlight: "Cień do półcień",
-        origin: "Afryka Zachodnia",
-        indoor: "Tak",
-        careLevel: "Bardzo łatwy",
+          "Ikona roślin domowych. Jej ogromne liście nadają wnętrzom charakteru.",
+        watering: "UMIARKOWANE",
+        sunlight: "PÓŁCIEŃ",
+        origin: "Ameryka Środkowa",
+        indoor: "TAK",
+        careLevel: "ŁATWY",
+        specialFeature: "oczyszczająca",
+        why: "idealna na start",
         imageUrl:
-          "https://perenual.com/storage/species_image/3_sansevieria_trifasciata/large.jpg",
+          "https://perenual.com/storage/species_image/1_monstera_deliciosa/large.jpg",
       });
     } finally {
       setLoading(false);
@@ -46,76 +59,77 @@ export default function InspirationsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2e7d32" />
-        <Text style={styles.loadingText}>Szukam inspirującej rośliny...</Text>
-      </View>
-    );
-  }
-
-  if (!plant) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          Nie udało się załadować rośliny dnia
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Szukam rośliny...
         </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Roślina dnia 🌿</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <Text style={[styles.title, { color: colors.primary }]}>
+        Roślina dnia
+      </Text>
 
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Image source={{ uri: plant.imageUrl }} style={styles.image} />
 
         <View style={styles.content}>
-          <Text style={styles.commonName}>{plant.commonName}</Text>
-          <Text style={styles.scientificName}>{plant.scientificName}</Text>
+          <Text style={[styles.commonName, { color: colors.primary }]}>
+            {capitalize(plant.commonName)}
+          </Text>
+          <Text
+            style={[styles.scientificName, { color: colors.textSecondary }]}
+          >
+            {capitalize(plant.scientificName)}
+          </Text>
 
-          <Text style={styles.description}>{plant.description}</Text>
+          <Text style={[styles.description, { color: colors.text }]}>
+            {plant.description}
+          </Text>
+          <Text style={[styles.why, { color: colors.primary }]}>
+            Dlaczego warto? {capitalize(plant.why)}
+          </Text>
 
           <View style={styles.factsGrid}>
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>💧</Text>
-              <Text style={styles.factLabel}>Podlewanie</Text>
-              <Text style={styles.factValue}>{plant.watering}</Text>
-            </View>
-
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>☀️</Text>
-              <Text style={styles.factLabel}>Światło</Text>
-              <Text style={styles.factValue}>{plant.sunlight}</Text>
-            </View>
-
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>🌍</Text>
-              <Text style={styles.factLabel}>Pochodzenie</Text>
-              <Text style={styles.factValue}>{plant.origin}</Text>
-            </View>
-
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>🏠</Text>
-              <Text style={styles.factLabel}>Do wnętrz</Text>
-              <Text style={styles.factValue}>{plant.indoor}</Text>
-            </View>
-
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>⭐</Text>
-              <Text style={styles.factLabel}>Poziom opieki</Text>
-              <Text style={styles.factValue}>{plant.careLevel}</Text>
-            </View>
-
-            <View style={styles.factItem}>
-              <Text style={styles.factEmoji}>🔄</Text>
-              <Text style={styles.factLabel}>Cykl</Text>
-              <Text style={styles.factValue}>{plant.cycle}</Text>
-            </View>
+            {[
+              { emoji: "💧", label: "Podlewanie", value: plant.watering },
+              { emoji: "☀️", label: "Światło", value: plant.sunlight },
+              { emoji: "🌍", label: "Pochodzenie", value: plant.origin },
+              { emoji: "🏠", label: "Do wnętrz", value: plant.indoor },
+              { emoji: "⭐", label: "Poziom", value: plant.careLevel },
+              { emoji: "✨", label: "Cecha", value: plant.specialFeature },
+            ].map((fact, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.factItem,
+                  { backgroundColor: isDark ? colors.background : "#f0f7f0" },
+                ]}
+              >
+                <Text style={styles.factEmoji}>{fact.emoji}</Text>
+                <Text
+                  style={[styles.factLabel, { color: colors.textSecondary }]}
+                >
+                  {fact.label}
+                </Text>
+                <Text style={[styles.factValue, { color: colors.primary }]}>
+                  {capitalize(fact.value)}
+                </Text>
+              </View>
+            ))}
           </View>
 
-          <TouchableOpacity style={styles.newBtn} onPress={fetchRandomPlant}>
-            <Text style={styles.newBtnText}>🔀 Pokaż inną roślinę</Text>
+          <TouchableOpacity
+            style={[styles.newBtn, { backgroundColor: colors.primary }]}
+            onPress={fetchRandomPlant}
+          >
+            <Text style={styles.newBtnText}>Pokaż inną roślinę</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -124,117 +138,100 @@ export default function InspirationsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 20 },
+  center: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
-    marginTop: 30,
-    marginBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    marginTop: 50,
+    marginBottom: 24,
   },
   loadingText: {
     marginTop: 20,
-    fontSize: 18,
-    color: "#666",
+    fontSize: 16,
   },
   card: {
-    marginHorizontal: 16,
-    backgroundColor: "white",
     borderRadius: 28,
     overflow: "hidden",
-    elevation: 10,
+    elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    marginBottom: 40,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    marginBottom: 10,
   },
   image: {
     width: "100%",
-    height: 520,
+    height: 400,
   },
   content: {
-    padding: 28,
+    padding: 24,
   },
   commonName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   scientificName: {
-    fontSize: 18,
-    color: "#666",
+    fontSize: 16,
     textAlign: "center",
     fontStyle: "italic",
-    marginBottom: 28,
+    marginBottom: 20,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 28,
-    color: "#333",
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+  why: {
+    fontSize: 16,
+    fontStyle: "italic",
+    textAlign: "center",
+    marginBottom: 24,
   },
   factsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   factItem: {
     width: "48%",
-    backgroundColor: "#f0f7f0",
-    padding: 16,
+    padding: 12,
     borderRadius: 16,
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   factEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  factLabel: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 28,
     marginBottom: 4,
   },
+  factLabel: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
   factValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
   },
   newBtn: {
-    backgroundColor: "#2e7d32",
-    padding: 20,
+    padding: 18,
     borderRadius: 20,
     alignItems: "center",
-    elevation: 6,
   },
   newBtnText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    fontSize: 18,
-    color: "#f44336",
   },
 });

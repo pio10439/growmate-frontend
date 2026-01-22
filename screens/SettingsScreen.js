@@ -11,16 +11,29 @@ import {
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebaseConfig";
+import { authorizedRequest } from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
 const NOTIFICATIONS_KEY = "dailyRemindersEnabled";
 
 export default function SettingsScreen({ navigation }) {
+  const { isDark, toggleTheme, colors } = useTheme();
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState({
+    joinedAt: null,
+    plantCount: 0,
+  });
 
   useEffect(() => {
     loadSetting();
-  }, []);
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadUserInfo();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const loadSetting = async () => {
     try {
@@ -36,6 +49,18 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const loadUserInfo = async () => {
+    try {
+      const res = await authorizedRequest({
+        url: "/user-info",
+        method: "GET",
+      });
+      setUserInfo(res.data);
+    } catch (error) {
+      console.error("Blad pobierania danych użytkownika", error);
+    }
+  };
+
   const scheduleDailyReminder = async () => {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
@@ -44,14 +69,18 @@ export default function SettingsScreen({ navigation }) {
         content: {
           title: "Czas na podlewanie roślin! 🌱",
           body: "Otwórz GrowMate i sprawdź, które rośliny potrzebują wody dzisiaj.",
-          sound: "default",
+          sound: "true",
+          priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
-          hour: 8,
+          type: "daily",
+          hour: 18,
           minute: 0,
           repeats: true,
         },
       });
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      console.log("Zaplanowane powiadomienia:", scheduled.length);
     } catch (error) {
       console.error("Błąd planowania powiadomienia:", error);
     }
@@ -76,7 +105,7 @@ export default function SettingsScreen({ navigation }) {
                 text: "Otwórz ustawienia",
                 onPress: () => Linking.openSettings(),
               },
-            ]
+            ],
           );
           setEnabled(false);
           await AsyncStorage.setItem(NOTIFICATIONS_KEY, "false");
@@ -86,7 +115,7 @@ export default function SettingsScreen({ navigation }) {
         await scheduleDailyReminder();
         Alert.alert(
           "Sukces! 🔔",
-          "Codzienne przypomnienie o 8:00 zostało włączone."
+          "Codzienne przypomnienie o 18:00 zostało włączone.",
         );
       } else {
         await Notifications.cancelAllScheduledNotificationsAsync();
@@ -101,68 +130,149 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const handleLogout = async () => {
+    Alert.alert("Wyloguj się", "Czy na pewno chcesz opuścić aplikację?", [
+      { text: "Anuluj", style: "cancel" },
+      {
+        text: "Wyloguj",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut(auth);
+
+            await AsyncStorage.multiRemove([
+              "token",
+              "user",
+              NOTIFICATIONS_KEY,
+            ]);
+
+            await Notifications.cancelAllScheduledNotificationsAsync();
+          } catch (error) {
+            console.error("Blad wylogowania", error);
+            Alert.alert("Błąd", "Nie udało się wylogować poprawnie.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const formatDate = (isoString) => {
+    if (!isoString) return "Nieznana data";
+    const date = new Date(isoString);
+    const correctDate = date.toLocaleDateString("pl-PL", {
+      month: "short",
+      year: "numeric",
+    });
+    return (
+      correctDate.replace(".", "").charAt(0).toUpperCase() +
+      String(correctDate).slice(1)
+    );
+  };
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Ustawienia</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <Text style={[styles.title, { color: colors.primary }]}>Ustawienia</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Powiadomienia</Text>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+          Twój Profil
+        </Text>
+        <View style={styles.statsContainer}>
+          {[
+            { label: "Twoje rośliny", value: userInfo.plantCount },
+            {
+              label: "Z GrowMate od",
+              value: userInfo.joinedAt ? formatDate(userInfo.joinedAt) : "...",
+            },
+          ].map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.statCard,
+                { backgroundColor: isDark ? colors.background : "#fff" },
+              ]}
+            >
+              <Text style={[styles.statMainText, { color: colors.primary }]}>
+                {item.value}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+          Wygląd
+        </Text>
         <View style={styles.option}>
           <View style={styles.optionText}>
-            <Text style={styles.label}>
-              Codzienne przypomnienie o podlewaniu
+            <Text style={[styles.label, { color: colors.text }]}>
+              Tryb ciemny
             </Text>
-            <Text style={styles.description}>
-              Każdego dnia o 8:00 otrzymasz powiadomienie zachęcające do
-              sprawdzenia roślin
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              Zmień wygląd aplikacji na ciemny motyw
+            </Text>
+          </View>
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            trackColor={{ false: "#767577", true: colors.accent }}
+            thumbColor={isDark ? colors.primary : "#f4f3f4"}
+          />
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+          Powiadomienia
+        </Text>
+        <View style={styles.option}>
+          <View style={styles.optionText}>
+            <Text style={[styles.label, { color: colors.text }]}>
+              Codzienne przypomnienie
+            </Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              Powiadomienie o 18:00 o podlewaniu
             </Text>
           </View>
           <Switch
             value={enabled}
             onValueChange={toggleReminders}
             disabled={loading}
-            trackColor={{ false: "#767577", true: "#81c784" }}
-            thumbColor={enabled ? "#2e7d32" : "#f4f3f4"}
-            ios_backgroundColor="#3e3e3e"
+            trackColor={{ false: "#767577", true: colors.accent }}
+            thumbColor={enabled ? colors.primary : "#f4f3f4"}
           />
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.actionButton}
-        onPress={() => navigation.navigate("Calendar")}
-      >
-        <Text style={styles.actionButtonText}>
-          📅 Otwórz kalendarz podlewania
-        </Text>
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Wyloguj się</Text>
       </TouchableOpacity>
 
-      {/* jednostki temp */}
-      {/* 
-      Tryb ciemny
-      */}
-
-      <Text style={styles.version}>Wersja aplikacji: 1.0.0</Text>
+      <Text style={[styles.version, { color: colors.textSecondary }]}>
+        Wersja 1.0.0
+      </Text>
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
-    marginVertical: 30,
+    marginBottom: 24,
+    marginTop: 50,
   },
   section: {
-    backgroundColor: "white",
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
@@ -175,13 +285,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#2e7d32",
     marginBottom: 16,
   },
   option: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   optionText: {
     flex: 1,
@@ -190,32 +299,55 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   description: {
     fontSize: 14,
-    color: "#666",
     lineHeight: 20,
   },
-  actionButton: {
-    backgroundColor: "#2e7d32",
+  logoutBtn: {
+    backgroundColor: "#e53935",
     padding: 18,
     borderRadius: 16,
     alignItems: "center",
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginBottom: 30,
     elevation: 4,
   },
-  actionButtonText: {
+  logoutText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
   version: {
     fontSize: 14,
-    color: "#aaa",
     textAlign: "center",
-    marginTop: 40,
     marginBottom: 20,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  statCard: {
+    flex: 0.48,
+    height: 100,
+    borderRadius: 15,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+  },
+  statMainText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  statLabel: {
+    fontSize: 11,
+    marginTop: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontWeight: "bold",
   },
 });

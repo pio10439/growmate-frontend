@@ -12,8 +12,10 @@ import {
 } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { useTheme } from "../context/ThemeContext";
 
 export default function RegisterScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,10 +24,6 @@ export default function RegisterScreen({ navigation }) {
   const handleRegister = async () => {
     if (!email.trim()) {
       Alert.alert("Błąd", "Wprowadź adres email");
-      return;
-    }
-    if (!password) {
-      Alert.alert("Błąd", "Wprowadź hasło");
       return;
     }
     if (password.length < 6) {
@@ -42,11 +40,9 @@ export default function RegisterScreen({ navigation }) {
       await createUserWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
-        password
+        password,
       );
-      Alert.alert("Sukces!", "Konto zostało utworzone. Witaj w GrowMate!", [
-        { text: "OK", onPress: () => navigation.replace("Home") },
-      ]);
+      Alert.alert("Sukces!", "Konto zostało utworzone. Witaj w GrowMate!");
     } catch (error) {
       let message = "Nie udało się utworzyć konta";
       if (error.code === "auth/email-already-in-use") {
@@ -54,10 +50,9 @@ export default function RegisterScreen({ navigation }) {
       } else if (error.code === "auth/invalid-email") {
         message = "Nieprawidłowy format email";
       } else if (error.code === "auth/weak-password") {
-        message = "Hasło jest za słabe (minimum 6 znaków)";
+        message = "Hasło jest za słabe";
       }
       Alert.alert("Błąd rejestracji", message);
-      console.log("FireBase message:", error);
     } finally {
       setLoading(false);
     }
@@ -65,18 +60,29 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Dołącz do GrowMate 🌱</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.primary }]}>
+          Dołącz do GrowMate 🌱
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Załóż konto i zacznij dbać o swoje rośliny
         </Text>
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "#333" : "transparent",
+            },
+          ]}
           placeholder="Email"
+          placeholderTextColor={isDark ? "#888" : "#999"}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -85,8 +91,17 @@ export default function RegisterScreen({ navigation }) {
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "#333" : "transparent",
+            },
+          ]}
           placeholder="Hasło (min. 6 znaków)"
+          placeholderTextColor={isDark ? "#888" : "#999"}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -94,8 +109,17 @@ export default function RegisterScreen({ navigation }) {
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "#333" : "transparent",
+            },
+          ]}
           placeholder="Powtórz hasło"
+          placeholderTextColor={isDark ? "#888" : "#999"}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
@@ -103,23 +127,30 @@ export default function RegisterScreen({ navigation }) {
         />
 
         <TouchableOpacity
-          style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+          style={[
+            styles.btn,
+            { backgroundColor: colors.primary },
+            loading && styles.btnDisabled,
+          ]}
           onPress={handleRegister}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.registerText}>Zarejestruj się</Text>
+            <Text style={styles.btnText}>Zarejestruj się</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.loginLink}
+          style={styles.link}
           onPress={() => navigation.navigate("Login")}
         >
-          <Text style={styles.loginText}>
-            Masz już konto? <Text style={styles.bold}>Zaloguj się</Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Masz już konto?{" "}
+            <Text style={[styles.bold, { color: colors.primary }]}>
+              Zaloguj się
+            </Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -130,7 +161,6 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
   inner: {
     flex: 1,
@@ -140,18 +170,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "bold",
-    color: "#2e7d32",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
     marginBottom: 40,
   },
   input: {
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
@@ -162,32 +189,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-  registerBtn: {
-    backgroundColor: "#2e7d32",
+  btn: {
     padding: 18,
     borderRadius: 16,
     alignItems: "center",
     marginTop: 16,
     elevation: 4,
   },
-  registerBtnDisabled: {
-    backgroundColor: "#81c784",
+  btnDisabled: {
+    opacity: 0.6,
   },
-  registerText: {
+  btnText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
-  loginLink: {
+  link: {
     marginTop: 32,
     alignItems: "center",
   },
-  loginText: {
+  footerText: {
     fontSize: 16,
-    color: "#666",
   },
   bold: {
     fontWeight: "bold",
-    color: "#2e7d32",
   },
 });

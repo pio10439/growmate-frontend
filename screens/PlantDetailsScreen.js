@@ -12,6 +12,8 @@ import {
 import LottieView from "lottie-react-native";
 import { authorizedRequest } from "../services/api";
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 
 const WEATHER_ANIMATIONS = {
   Clear: require("../assets/lottie/sun.json"),
@@ -26,6 +28,7 @@ const WEATHER_ANIMATIONS = {
 };
 
 export default function PlantDetailsScreen({ route, navigation }) {
+  const { colors, isDark } = useTheme();
   const { plant: initialPlant } = route.params;
   const [plant, setPlant] = useState(initialPlant);
   const [weather, setWeather] = useState(null);
@@ -54,7 +57,7 @@ export default function PlantDetailsScreen({ route, navigation }) {
       setWeather(weatherRes.data);
 
       const locationRes = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=pl`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=pl`,
       );
       const data = locationRes.data;
       if (data.address) {
@@ -147,7 +150,7 @@ export default function PlantDetailsScreen({ route, navigation }) {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -195,34 +198,55 @@ export default function PlantDetailsScreen({ route, navigation }) {
             }
           },
         },
-      ]
+      ],
     );
   };
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2e7d32" />
-        <Text style={styles.loadingText}>Ładowanie szczegółów rośliny...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Ładowanie szczegółów...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Image
-        source={{
-          uri:
-            plant.photoUrl ||
-            "https://via.placeholder.com/400x300?text=Brak+zdjęcia",
-        }}
-        style={styles.photo}
-        resizeMode="cover"
-      />
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <View style={styles.imageWrapper}>
+        <Image
+          source={{
+            uri:
+              plant.photoUrl ||
+              "https://via.placeholder.com/400x300?text=Brak+zdjęcia",
+          }}
+          style={styles.photo}
+          resizeMode="cover"
+        />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.content}>
-        <Text style={styles.name}>{plant.name || "Bez nazwy"}</Text>
-        <Text style={styles.type}>{plant.type || "Typ niepodany"}</Text>
+        <Text style={[styles.name, { color: colors.primary }]}>
+          {plant.name || "Bez nazwy"}
+        </Text>
+        <Text style={[styles.type, { color: colors.textSecondary }]}>
+          {plant.type || "Typ niepodany"}
+        </Text>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.waterBtn} onPress={markAsWatered}>
@@ -236,56 +260,70 @@ export default function PlantDetailsScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Informacje o pielęgnacji</Text>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoText}>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+          Informacje o pielęgnacji
+        </Text>
+        <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.infoText, { color: colors.text }]}>
             Ostatnio podlana:{" "}
-            <Text style={styles.bold}>{formatDate(plant.lastWatered)}</Text>
+            <Text style={[styles.bold, { color: colors.primary }]}>
+              {formatDate(plant.lastWatered)}
+            </Text>
           </Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: colors.text }]}>
             Ostatnio nawożona:{" "}
-            <Text style={styles.bold}>{formatDate(plant.lastFertilized)}</Text>
+            <Text style={[styles.bold, { color: colors.primary }]}>
+              {formatDate(plant.lastFertilized)}
+            </Text>
           </Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: colors.text }]}>
             Światło: {plant.lightLevel || "Nie podano"}
           </Text>
-          <Text style={styles.infoText}>
-            Temperatura: {plant.temperature || "Nie podano"} °C
+          <Text style={[styles.infoText, { color: colors.text }]}>
+            Temperatura: {plant.temperature || "Nie podano"}°C
           </Text>
-          {plant.notes ? (
-            <Text style={styles.infoText}>Notatki: {plant.notes}</Text>
-          ) : null}
+          {plant.notes && (
+            <Text style={[styles.infoText, { color: colors.text }]}>
+              Notatki: {plant.notes}
+            </Text>
+          )}
         </View>
 
         <View style={styles.weatherSection}>
-          <Text style={styles.sectionTitle}>Pogoda w lokalizacji rośliny</Text>
-
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+            Pogoda w lokalizacji
+          </Text>
           {current ? (
-            <View style={styles.weatherCard}>
-              <Text style={styles.locationName}>{locationName}</Text>
+            <View
+              style={[styles.weatherCard, { backgroundColor: colors.card }]}
+            >
+              <Text style={[styles.locationName, { color: colors.text }]}>
+                {locationName}
+              </Text>
               <LottieView
                 source={getWeatherAnimation()}
                 autoPlay
                 loop
                 style={styles.lottie}
               />
-              <Text style={styles.weatherTemp}>
+              <Text style={[styles.weatherTemp, { color: colors.text }]}>
                 {Math.round(current.main.temp)}°C
               </Text>
-              <Text style={styles.weatherDesc}>
+              <Text
+                style={[styles.weatherDesc, { color: colors.textSecondary }]}
+              >
                 {current.weather[0].description.charAt(0).toUpperCase() +
                   current.weather[0].description.slice(1)}
               </Text>
-              <Text style={styles.weatherDetail}>
+              <Text
+                style={[styles.weatherDetail, { color: colors.textSecondary }]}
+              >
                 Wilgotność: {current.main.humidity}%
-              </Text>
-              <Text style={styles.weatherDetail}>
-                Wiatr: {Math.round(current.wind?.speed || 0)} m/s
               </Text>
             </View>
           ) : (
-            <Text style={styles.noData}>
-              Brak danych pogodowych (nie zapisano lokalizacji)
+            <Text style={[styles.noData, { color: colors.textSecondary }]}>
+              Brak danych pogodowych
             </Text>
           )}
         </View>
@@ -296,17 +334,14 @@ export default function PlantDetailsScreen({ route, navigation }) {
             onPress={() =>
               navigation.navigate("Main", {
                 screen: "AddPlantTab",
-                params: {
-                  plantToEdit: plant,
-                },
+                params: { plantToEdit: plant },
               })
             }
           >
-            <Text style={styles.btnText}> Edytuj roślinę</Text>
+            <Text style={styles.btnText}>Edytuj</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.deleteBtn} onPress={deletePlant}>
-            <Text style={styles.btnText}> Usuń roślinę</Text>
+            <Text style={styles.btnText}>Usuń</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -315,11 +350,17 @@ export default function PlantDetailsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
-  photo: { width: "100%", height: 320 },
+  container: { flex: 1 },
+  photo: {
+    width: "100%",
+    height: 340,
+    marginTop: 65,
+    borderRadius: 12,
+    padding: 16,
+  },
   content: { padding: 20 },
-  name: { fontSize: 32, fontWeight: "bold", color: "#2e7d32", marginBottom: 6 },
-  type: { fontSize: 20, color: "#666", marginBottom: 24 },
+  name: { fontSize: 32, fontWeight: "bold", marginBottom: 6 },
+  type: { fontSize: 20, marginBottom: 24 },
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -344,61 +385,33 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
   },
-  infoCard: {
-    backgroundColor: "white",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 24,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2e7d32",
-    marginBottom: 16,
-  },
-  infoText: {
-    fontSize: 18,
-    color: "#333",
-    marginBottom: 8,
-  },
-  bold: { fontWeight: "bold", color: "#3cb142ff" },
+  infoCard: { padding: 18, borderRadius: 16, marginBottom: 24, elevation: 3 },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 16 },
+  infoText: { fontSize: 18, marginBottom: 8 },
+  bold: { fontWeight: "bold" },
   weatherSection: { marginBottom: 30 },
   locationName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
     textAlign: "center",
     marginBottom: 16,
   },
   weatherCard: {
-    backgroundColor: "white",
     padding: 20,
     borderRadius: 16,
     alignItems: "center",
     elevation: 3,
   },
   lottie: { width: 160, height: 160 },
-  weatherTemp: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "#333",
-    marginVertical: 8,
+  weatherTemp: { fontSize: 40, fontWeight: "bold", marginVertical: 8 },
+  weatherDesc: { fontSize: 18, textAlign: "center", marginBottom: 12 },
+  weatherDetail: { fontSize: 16 },
+  noData: { fontSize: 16, textAlign: "center", fontStyle: "italic" },
+  bottomActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 40,
   },
-  weatherDesc: {
-    fontSize: 18,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  weatherDetail: { fontSize: 16, color: "#555" },
-  noData: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    fontStyle: "italic",
-  },
-  bottomActions: { flexDirection: "row", justifyContent: "space-between" },
   editBtn: {
     backgroundColor: "#2196f3",
     padding: 16,
@@ -412,15 +425,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 20, fontSize: 18 },
+  imageWrapper: { position: "relative" },
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 16,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 20,
+    padding: 2,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 18,
-    color: "#666",
   },
 });

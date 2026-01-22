@@ -10,13 +10,19 @@ import {
   Alert,
   StyleSheet,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { authorizedRequest } from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
 export default function AddPlantScreen({ navigation, route }) {
+  const { colors, isDark } = useTheme();
   const plantToEdit = route.params?.plantToEdit;
 
   const [photo, setPhoto] = useState(null);
@@ -45,31 +51,36 @@ export default function AddPlantScreen({ navigation, route }) {
         setLocation(
           plantToEdit.location?.lat && plantToEdit.location?.lng
             ? plantToEdit.location
-            : null
+            : null,
         );
         setUseAI(false);
       } else {
-        setPhoto(null);
-        setName("");
-        setType("");
-        setWateringDays("");
-        setFertilizingDays("");
-        setLightLevel("");
-        setTemperature("");
-        setNotes("");
-        setLocation(null);
-        setUseAI(true);
+        resetForm();
       }
-    }, [plantToEdit])
+      return () => {
+        navigation.setParams({ plantToEdit: null });
+      };
+    }, [plantToEdit]),
   );
+
+  const resetForm = () => {
+    setPhoto(null);
+    setName("");
+    setType("");
+    setWateringDays("");
+    setFertilizingDays("");
+    setLightLevel("");
+    setTemperature("");
+    setNotes("");
+    setLocation(null);
+    setUseAI(true);
+  };
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Uwaga",
-          "Brak uprawnień do lokalizacji – pogoda nie będzie dostępna."
-        );
+        Alert.alert("Uwaga", "Brak uprawnień do lokalizacji.");
       }
     })();
   }, []);
@@ -81,12 +92,9 @@ export default function AddPlantScreen({ navigation, route }) {
       aspect: [1, 1],
       quality: 0.8,
     });
-
     if (!result.canceled) {
       setPhoto(result.assets[0]);
-      if (useAI && !plantToEdit) {
-        identifyPlant(result.assets[0]);
-      }
+      if (useAI && !plantToEdit) identifyPlant(result.assets[0]);
     }
   };
 
@@ -96,18 +104,14 @@ export default function AddPlantScreen({ navigation, route }) {
       Alert.alert("Błąd", "Brak dostępu do kamery");
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-
     if (!result.canceled) {
       setPhoto(result.assets[0]);
-      if (useAI && !plantToEdit) {
-        identifyPlant(result.assets[0]);
-      }
+      if (useAI && !plantToEdit) identifyPlant(result.assets[0]);
     }
   };
 
@@ -120,29 +124,26 @@ export default function AddPlantScreen({ navigation, route }) {
         type: "image/jpeg",
         name: "plant.jpg",
       });
-
       const res = await authorizedRequest({
         url: "/identify-plant",
         method: "POST",
         data: formData,
-        headers: { "Content-Type": "multipart/form-data" },
       });
-
       const data = res.data;
       setName(data.name || "");
       setType(data.commonNames?.[0] || data.name || "");
-      setLightLevel(data.sunlight?.join(", ") || "");
-
+      setWateringDays(data.wateringDays?.toString() || "");
+      setFertilizingDays(data.fertilizingDays?.toString() || "");
+      setLightLevel(data.lightLevel || "");
+      setTemperature(data.temperature || "");
+      setNotes(data.notes || "");
       Alert.alert(
-        "Rozpoznano roślinę 🌿",
-        `${data.name} (${data.probability}% pewności)`
+        "Rozpoznano roślinę! 🌿",
+        `${data.name || "Roślina"} (${data.probability || "?"}% pewności)\n`,
       );
     } catch (error) {
-      console.error("AI error:", error);
-      Alert.alert(
-        "Nie udało się rozpoznać",
-        "Spróbuj innego zdjęcia lub wprowadź dane ręcznie."
-      );
+      console.error("Błąd AI:", error);
+      Alert.alert("Nie udało się rozpoznać", "Wypełnij dane ręcznie.");
       setUseAI(false);
     } finally {
       setIdentifying(false);
@@ -152,10 +153,7 @@ export default function AddPlantScreen({ navigation, route }) {
   const getLocation = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({});
-      setLocation({
-        lat: loc.coords.latitude,
-        lng: loc.coords.longitude,
-      });
+      setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       Alert.alert("Sukces", "Lokalizacja zapisana");
     } catch {
       Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
@@ -163,17 +161,15 @@ export default function AddPlantScreen({ navigation, route }) {
   };
 
   const savePlant = async () => {
-    if (!photo || !name.trim()) {
-      Alert.alert("Błąd", "Zdjęcie i nazwa rośliny są wymagane");
+    if (!photo || !name.trim() || !wateringDays || !fertilizingDays) {
+      Alert.alert("Błąd", "Wymagane: zdjęcie, nazwa, podlewanie i nawożenie.");
       return;
     }
-
     try {
       const formData = new FormData();
-
       if (
-        photo.uri?.startsWith("file://") ||
-        photo.uri?.startsWith("content://")
+        photo.uri &&
+        (photo.uri.startsWith("file://") || photo.uri.startsWith("content://"))
       ) {
         formData.append("photo", {
           uri: photo.uri,
@@ -181,17 +177,16 @@ export default function AddPlantScreen({ navigation, route }) {
           name: "plant.jpg",
         });
       }
-
       formData.append("name", name.trim());
-      formData.append("type", type.trim() || "Inna");
-      formData.append("wateringDays", wateringDays || "7");
-      formData.append("fertilizingDays", fertilizingDays || "30");
+      formData.append("type", type?.trim() || "Inna");
+      formData.append("wateringDays", wateringDays);
+      formData.append("fertilizingDays", fertilizingDays);
       formData.append("lightLevel", lightLevel.trim());
       formData.append("temperature", temperature.trim());
       formData.append("notes", notes.trim());
       formData.append(
         "location",
-        JSON.stringify(location || { lat: 0, lng: 0 })
+        JSON.stringify(location || { lat: 0, lng: 0 }),
       );
 
       if (plantToEdit) {
@@ -199,171 +194,224 @@ export default function AddPlantScreen({ navigation, route }) {
           url: `/plants/${plantToEdit.id}`,
           method: "PUT",
           data: formData,
-          headers: { "Content-Type": "multipart/form-data" },
         });
-        Alert.alert("Sukces", "Roślina zaktualizowana");
       } else {
         await authorizedRequest({
           url: "/plants",
           method: "POST",
           data: formData,
-          headers: { "Content-Type": "multipart/form-data" },
         });
-        Alert.alert("Sukces", "Roślina dodana");
       }
-
+      navigation.setParams({ plantToEdit: null });
       navigation.goBack();
     } catch (error) {
-      console.error(error);
-      Alert.alert("Błąd", "Nie udało się zapisać rośliny");
+      Alert.alert("Błąd", "Nie udało się zapisać.");
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>
-        {plantToEdit ? "Edytuj roślinę" : "Dodaj nową roślinę"}
-      </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ paddingBottom: 40 }}>
+            <Text style={[styles.title, { color: colors.primary }]}>
+              {plantToEdit ? "Edytuj roślinę" : "Dodaj nową roślinę"}
+            </Text>
 
-      <View style={styles.photoSection}>
-        {photo ? (
-          <Image source={{ uri: photo.uri }} style={styles.photo} />
-        ) : (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>Brak zdjęcia</Text>
+            <View style={styles.photoSection}>
+              {photo ? (
+                <Image source={{ uri: photo.uri }} style={styles.photo} />
+              ) : (
+                <View
+                  style={[
+                    styles.placeholder,
+                    {
+                      backgroundColor: isDark ? colors.card : "#e8f5e8",
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.placeholderText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Brak zdjęcia
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.photoButtons}>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: colors.accent }]}
+                  onPress={takePhoto}
+                >
+                  <Text style={styles.btnText}>Zrób zdjęcie</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: colors.accent }]}
+                  onPress={pickImage}
+                >
+                  <Text style={styles.btnText}>Z galerii</Text>
+                </TouchableOpacity>
+              </View>
+
+              {identifying && (
+                <ActivityIndicator
+                  size="large"
+                  color={colors.primary}
+                  style={{ marginTop: 16 }}
+                />
+              )}
+            </View>
+
+            {!plantToEdit && (
+              <View
+                style={[styles.switchRow, { backgroundColor: colors.card }]}
+              >
+                <Text style={[styles.switchLabel, { color: colors.text }]}>
+                  Użyj AI do rozpoznania
+                </Text>
+                <Switch
+                  value={useAI}
+                  onValueChange={setUseAI}
+                  trackColor={{ false: "#767577", true: colors.accent }}
+                  thumbColor={useAI ? colors.primary : "#f4f3f4"}
+                />
+              </View>
+            )}
+
+            {[
+              { val: name, setter: setName, ph: "Nazwa rośliny *" },
+              { val: type, setter: setType, ph: "Typ (np. Sukulent, Fikus)" },
+              {
+                val: wateringDays,
+                setter: setWateringDays,
+                ph: "Podlewanie (dni) *",
+                kt: "numeric",
+              },
+              {
+                val: fertilizingDays,
+                setter: setFertilizingDays,
+                ph: "Nawożenie (dni) *",
+                kt: "numeric",
+              },
+              {
+                val: lightLevel,
+                setter: setLightLevel,
+                ph: "Światło (np. Dużo słońca)",
+              },
+              {
+                val: temperature,
+                setter: setTemperature,
+                ph: "Temperatura (np. 18-24°C)",
+              },
+            ].map((input, idx) => (
+              <TextInput
+                key={idx}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.card, color: colors.text },
+                ]}
+                placeholder={input.ph}
+                placeholderTextColor={colors.textSecondary}
+                value={input.val}
+                onChangeText={input.setter}
+                keyboardType={input.kt || "default"}
+              />
+            ))}
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.card,
+                  color: colors.text,
+                  height: 100,
+                },
+              ]}
+              placeholder="Dodatkowe notatki"
+              placeholderTextColor={colors.textSecondary}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.locationBtn,
+                { backgroundColor: location ? colors.primary : "#2196f3" },
+              ]}
+              onPress={getLocation}
+            >
+              <Text style={styles.btnText}>
+                {location ? "Lokalizacja zapisana ✓" : "Pobierz lokalizację"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+              onPress={savePlant}
+            >
+              <Text style={styles.btnText}>
+                {plantToEdit ? "Zapisz zmiany" : "Zapisz roślinę"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={styles.photoButtons}>
-          <TouchableOpacity style={styles.btn} onPress={takePhoto}>
-            <Text style={styles.btnText}> Zrób zdjęcie</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={pickImage}>
-            <Text style={styles.btnText}> Z galerii</Text>
-          </TouchableOpacity>
-        </View>
-
-        {identifying && (
-          <ActivityIndicator
-            size="large"
-            color="#2e7d32"
-            style={{ marginTop: 16 }}
-          />
-        )}
-      </View>
-
-      {!plantToEdit && (
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Użyj AI do rozpoznania rośliny</Text>
-          <Switch value={useAI} onValueChange={setUseAI} />
-        </View>
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nazwa rośliny *"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Typ (np. Sukulent, Fikus)"
-        value={type}
-        onChangeText={setType}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Podlewanie co ile dni (np. 7)"
-        value={wateringDays}
-        onChangeText={setWateringDays}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Nawożenie co ile dni (np. 30)"
-        value={fertilizingDays}
-        onChangeText={setFertilizingDays}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Poziom światła (np. Dużo słońca)"
-        value={lightLevel}
-        onChangeText={setLightLevel}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preferowana temperatura (np. 18-24°C)"
-        value={temperature}
-        onChangeText={setTemperature}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Dodatkowe notatki"
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-        numberOfLines={4}
-      />
-
-      <TouchableOpacity style={styles.locationBtn} onPress={getLocation}>
-        <Text style={styles.btnText}>
-          {location
-            ? "Lokalizacja zapisana ✓"
-            : "Pobierz lokalizację (dla pogody)"}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.saveBtn} onPress={savePlant}>
-        <Text style={styles.saveText}>
-          {plantToEdit ? "Zapisz zmiany" : "Zapisz roślinę"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, paddingHorizontal: 16 },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#2e7d32",
-    marginBottom: 20,
     textAlign: "center",
+    marginTop: 50,
+    marginBottom: 24,
   },
   photoSection: { alignItems: "center", marginBottom: 24 },
-  photo: { width: 220, height: 220, borderRadius: 24, marginBottom: 16 },
+  photo: { width: 260, height: 260, borderRadius: 30 },
   placeholder: {
-    width: 220,
-    height: 220,
-    backgroundColor: "#e0e0e0",
+    width: 240,
+    height: 240,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 24,
-    marginBottom: 16,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderStyle: "dashed",
   },
-  placeholderText: { color: "#666", fontSize: 16 },
-  photoButtons: { flexDirection: "row", gap: 16 },
-  btn: {
-    backgroundColor: "#4caf50",
-    padding: 14,
-    borderRadius: 12,
-    minWidth: 120,
+  placeholderText: { fontSize: 16 },
+  photoButtons: { flexDirection: "row", gap: 16, marginTop: 16 },
+  btn: { padding: 14, borderRadius: 12, minWidth: 120 },
+  btnText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 16,
   },
-  btnText: { color: "white", fontWeight: "bold", textAlign: "center" },
   switchRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
+    marginVertical: 10,
   },
   switchLabel: { fontSize: 16, flex: 1 },
   input: {
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -371,18 +419,15 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   locationBtn: {
-    backgroundColor: "#2196f3",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
     marginVertical: 16,
   },
   saveBtn: {
-    backgroundColor: "#2e7d32",
-    padding: 18,
+    padding: 16,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 40,
   },
-  saveText: { color: "white", fontSize: 18, fontWeight: "bold" },
 });
