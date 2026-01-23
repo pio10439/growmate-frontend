@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { authorizedRequest } from "../services/api";
@@ -113,17 +114,29 @@ export default function SettingsScreen({ navigation }) {
         }
 
         await scheduleDailyReminder();
-        Alert.alert(
-          "Sukces! 🔔",
-          "Codzienne przypomnienie o 18:00 zostało włączone.",
-        );
+        Toast.show({
+          type: "success",
+          text1: "Sukces! 🔔",
+          text2: "Codzienne przypomnienie o 18:00 zostało włączone.",
+          position: "bottom",
+        });
       } else {
         await Notifications.cancelAllScheduledNotificationsAsync();
-        Alert.alert("Wyłączono", "Codzienne przypomnienia zostały wyłączone.");
+        Toast.show({
+          type: "info",
+          text1: "Wyłączono",
+          text2: "Codzienne przypomnienia zostały wyłączone.",
+          position: "bottom",
+        });
       }
     } catch (error) {
       console.error("Błąd zmiany ustawień:", error);
-      Alert.alert("Błąd", "Nie udało się zapisać ustawień.");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się zapisać ustawień.",
+        position: "bottom",
+      });
       setEnabled(!value);
     } finally {
       setLoading(false);
@@ -131,29 +144,20 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleLogout = async () => {
-    Alert.alert("Wyloguj się", "Czy na pewno chcesz opuścić aplikację?", [
-      { text: "Anuluj", style: "cancel" },
-      {
-        text: "Wyloguj",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await signOut(auth);
+    try {
+      await signOut(auth);
 
-            await AsyncStorage.multiRemove([
-              "token",
-              "user",
-              NOTIFICATIONS_KEY,
-            ]);
-
-            await Notifications.cancelAllScheduledNotificationsAsync();
-          } catch (error) {
-            console.error("Blad wylogowania", error);
-            Alert.alert("Błąd", "Nie udało się wylogować poprawnie.");
-          }
-        },
-      },
-    ]);
+      await AsyncStorage.multiRemove(["token", "user", NOTIFICATIONS_KEY]);
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (error) {
+      console.error("Błąd wylogowania", error);
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się wylogować poprawnie.",
+        position: "bottom",
+      });
+    }
   };
 
   const formatDate = (isoString) => {

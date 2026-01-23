@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { authorizedRequest } from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 export default function HomeScreen({ navigation }) {
   const { colors, isDark } = useTheme();
@@ -68,9 +69,21 @@ export default function HomeScreen({ navigation }) {
             : plant,
         ),
       );
-      Alert.alert("Gotowe!", "Roślina została podlana");
+      Toast.show({
+        type: "success",
+        text1: "Gotowe!",
+        text2: "Roślina została podlana 🌿",
+        visibilityTime: 2000,
+        position: "bottom",
+      });
     } catch (error) {
-      Alert.alert("Błąd", "Nie udało się oznaczyć podlania");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się oznaczyć podlania",
+        visibilityTime: 2000,
+        position: "bottom",
+      });
     }
   };
   const getWateringStatus = (plant) => {

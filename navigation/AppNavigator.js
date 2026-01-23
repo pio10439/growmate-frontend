@@ -74,13 +74,7 @@ export default function AppNavigator() {
           tabBarLabel: "Dodaj",
           tabBarIcon: () => null,
           tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              style={{
-                top: Platform.OS === "ios" ? -20 : -25,
-                marginBottom: Platform.OS === "ios" ? 0 : -10,
-              }}
-            >
+            <TouchableOpacity {...props} style={styles.floatingButtonWrapper}>
               <View
                 style={[
                   styles.floatingButton,
@@ -127,6 +121,10 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  floatingButtonWrapper: {
+    top: Platform.OS === "ios" ? -20 : -25,
+    marginBottom: Platform.OS === "ios" ? 0 : -10,
+  },
   floatingButton: {
     width: 64,
     height: 64,

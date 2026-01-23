@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { authorizedRequest } from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 const capitalize = (text) => {
   if (!text) return "";
@@ -33,6 +34,13 @@ export default function InspirationsScreen() {
       console.log(res.data);
     } catch (error) {
       console.error("Błąd pobierania rośliny:", error);
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się pobrać rośliny. Spróbuj ponownie.",
+        visibilityTime: 2500,
+        position: "bottom",
+      });
       setPlant({
         commonName: "Monstera deliciosa",
         scientificName: "Monstera deliciosa",
@@ -77,7 +85,11 @@ export default function InspirationsScreen() {
       </Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Image source={{ uri: plant.imageUrl }} style={styles.image} />
+        <Image
+          source={{ uri: plant.imageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+        />
 
         <View style={styles.content}>
           <Text style={[styles.commonName, { color: colors.primary }]}>

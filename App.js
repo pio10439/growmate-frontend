@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { StyleSheet, View, ActivityIndicator, Text } from "react-native";
 import * as Notifications from "expo-notifications";
+import Toast from "react-native-toast-message";
 
 import AppNavigator from "./navigation/AppNavigator";
 import LoginScreen from "./screens/LoginScreen";
@@ -71,6 +72,7 @@ export default function App() {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      <Toast />
     </ThemeProvider>
   );
 }

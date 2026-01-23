@@ -13,6 +13,7 @@ import {
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen({ navigation }) {
   const { colors, isDark } = useTheme();
@@ -22,8 +23,13 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Błąd", "Wprowadź email i hasło");
-      return;
+      return Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Wprowadź email i hasło",
+        visibilityTime: 2500,
+        position: "bottom",
+      });
     }
 
     setLoading(true);
@@ -48,7 +54,13 @@ export default function LoginScreen({ navigation }) {
       } else if (error.code === "auth/network-request-failed") {
         message = "Brak połączenia z internetem.";
       }
-      Alert.alert("Błąd logowania", message);
+      Toast.show({
+        type: "error",
+        text1: "Błąd logowania",
+        text2: message,
+        visibilityTime: 2500,
+        position: "bottom",
+      });
     } finally {
       setLoading(false);
     }

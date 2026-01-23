@@ -13,6 +13,7 @@ import {
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 export default function RegisterScreen({ navigation }) {
   const { colors, isDark } = useTheme();
@@ -23,15 +24,30 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!email.trim()) {
-      Alert.alert("Błąd", "Wprowadź adres email");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Wprowadź adres email",
+        position: "bottom",
+      });
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Błąd", "Hasło musi mieć co najmniej 6 znaków");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Hasło musi mieć co najmniej 6 znaków",
+        position: "bottom",
+      });
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Błąd", "Hasła nie są identyczne");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Hasła nie są identyczne",
+        position: "bottom",
+      });
       return;
     }
 
@@ -42,7 +58,12 @@ export default function RegisterScreen({ navigation }) {
         email.trim().toLowerCase(),
         password,
       );
-      Alert.alert("Sukces!", "Konto zostało utworzone. Witaj w GrowMate!");
+      Toast.show({
+        type: "success",
+        text1: "Sukces!",
+        text2: "Konto zostało utworzone. Witaj w GrowMate! 🌱",
+        position: "bottom",
+      });
     } catch (error) {
       let message = "Nie udało się utworzyć konta";
       if (error.code === "auth/email-already-in-use") {
@@ -52,7 +73,12 @@ export default function RegisterScreen({ navigation }) {
       } else if (error.code === "auth/weak-password") {
         message = "Hasło jest za słabe";
       }
-      Alert.alert("Błąd rejestracji", message);
+      Toast.show({
+        type: "error",
+        text1: "Błąd rejestracji",
+        text2: message,
+        position: "bottom",
+      });
     } finally {
       setLoading(false);
     }

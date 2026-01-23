@@ -14,6 +14,7 @@ import { authorizedRequest } from "../services/api";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 const WEATHER_ANIMATIONS = {
   Clear: require("../assets/lottie/sun.json"),
@@ -44,7 +45,13 @@ export default function PlantDetailsScreen({ route, navigation }) {
       setPlant(res.data);
     } catch (error) {
       console.error("Błąd pobierania rośliny:", error);
-      Alert.alert("Błąd", "Nie udało się załadować aktualnych danych rośliny");
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się załadować aktualnych danych rośliny",
+        visibilityTime: 2000,
+        position: "bottom",
+      });
     }
   };
 
@@ -130,49 +137,53 @@ export default function PlantDetailsScreen({ route, navigation }) {
   };
 
   const markAsWatered = async () => {
-    Alert.alert(
-      "Podlej roślinę",
-      `Oznaczyć "${plant.name}" jako podlaną teraz?`,
-      [
-        { text: "Anuluj", style: "cancel" },
-        {
-          text: "Tak",
-          onPress: async () => {
-            try {
-              await authorizedRequest({
-                url: `/plants/${plant.id}/water`,
-                method: "POST",
-              });
-              await fetchPlant();
-              Alert.alert("Gotowe! ", "Data podlania została zaktualizowana");
-            } catch (error) {
-              Alert.alert("Błąd", "Nie udało się oznaczyć podlania");
-            }
-          },
-        },
-      ],
-    );
+    try {
+      await authorizedRequest({
+        url: `/plants/${plant.id}/water`,
+        method: "POST",
+      });
+      await fetchPlant();
+      Toast.show({
+        type: "success",
+        text1: "Podlano roślinę 🌱",
+        text2: `Data podlania dla ${plant.name} została zaktualizowana`,
+        position: "bottom",
+        visibilityTime: 2500,
+      });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się oznaczyć podlania",
+        position: "bottom",
+        visibilityTime: 2500,
+      });
+    }
   };
 
   const markAsFertilized = async () => {
-    Alert.alert("Nawożenie", `Oznaczyć "${plant.name}" jako nawożoną teraz?`, [
-      { text: "Anuluj", style: "cancel" },
-      {
-        text: "Tak",
-        onPress: async () => {
-          try {
-            await authorizedRequest({
-              url: `/plants/${plant.id}/fertilize`,
-              method: "POST",
-            });
-            await fetchPlant();
-            Alert.alert("Gotowe!", "Data nawożenia została zaktualizowana");
-          } catch (error) {
-            Alert.alert("Błąd", "Nie udało się oznaczyć nawożenia");
-          }
-        },
-      },
-    ]);
+    try {
+      await authorizedRequest({
+        url: `/plants/${plant.id}/fertilize`,
+        method: "POST",
+      });
+      await fetchPlant();
+      Toast.show({
+        type: "success",
+        text1: "Nawożono roślinę 🌱",
+        text2: `Data nawożenia dla ${plant.name} została zaktualizowana`,
+        position: "bottom",
+        visibilityTime: 2500,
+      });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Błąd",
+        text2: "Nie udało się oznaczyć nawożenia",
+        position: "bottom",
+        visibilityTime: 2500,
+      });
+    }
   };
 
   const deletePlant = async () => {

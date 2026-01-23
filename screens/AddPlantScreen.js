@@ -130,6 +130,17 @@ export default function AddPlantScreen({ navigation, route }) {
         data: formData,
       });
       const data = res.data;
+      const probability = parseInt(data.probability);
+
+      if (probability < 50) {
+        Alert.alert(
+          "Niska pewność rozpoznania",
+          `System rozpoznał roślinę zaledwie na ${probability}%. \n\nProsimy o zrobienie lepiej widocznego zdjęcia (z bliska, przy dobrym oświetleniu).`,
+          [{ text: "Ok", style: "default" }],
+        );
+        return;
+      }
+
       setName(data.name || "");
       setType(data.commonNames?.[0] || data.name || "");
       setWateringDays(data.wateringDays?.toString() || "");
@@ -217,6 +228,7 @@ export default function AddPlantScreen({ navigation, route }) {
     >
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -253,12 +265,14 @@ export default function AddPlantScreen({ navigation, route }) {
                 <TouchableOpacity
                   style={[styles.btn, { backgroundColor: colors.accent }]}
                   onPress={takePhoto}
+                  disabled={identifying}
                 >
                   <Text style={styles.btnText}>Zrób zdjęcie</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { backgroundColor: colors.accent }]}
                   onPress={pickImage}
+                  disabled={identifying}
                 >
                   <Text style={styles.btnText}>Z galerii</Text>
                 </TouchableOpacity>
@@ -283,6 +297,7 @@ export default function AddPlantScreen({ navigation, route }) {
                 <Switch
                   value={useAI}
                   onValueChange={setUseAI}
+                  disabled={identifying}
                   trackColor={{ false: "#767577", true: colors.accent }}
                   thumbColor={useAI ? colors.primary : "#f4f3f4"}
                 />
@@ -294,13 +309,13 @@ export default function AddPlantScreen({ navigation, route }) {
               { val: type, setter: setType, ph: "Typ (np. Sukulent, Fikus)" },
               {
                 val: wateringDays,
-                setter: setWateringDays,
+                setter: (val) => setWateringDays(val.replace(/[^0-9]/g, "")),
                 ph: "Podlewanie (dni) *",
                 kt: "numeric",
               },
               {
                 val: fertilizingDays,
-                setter: setFertilizingDays,
+                setter: (val) => setFertilizingDays(val.replace(/[^0-9]/g, "")),
                 ph: "Nawożenie (dni) *",
                 kt: "numeric",
               },
@@ -352,6 +367,7 @@ export default function AddPlantScreen({ navigation, route }) {
                 { backgroundColor: location ? colors.primary : "#2196f3" },
               ]}
               onPress={getLocation}
+              disabled={identifying}
             >
               <Text style={styles.btnText}>
                 {location ? "Lokalizacja zapisana ✓" : "Pobierz lokalizację"}
@@ -361,6 +377,7 @@ export default function AddPlantScreen({ navigation, route }) {
             <TouchableOpacity
               style={[styles.saveBtn, { backgroundColor: colors.primary }]}
               onPress={savePlant}
+              disabled={identifying}
             >
               <Text style={styles.btnText}>
                 {plantToEdit ? "Zapisz zmiany" : "Zapisz roślinę"}

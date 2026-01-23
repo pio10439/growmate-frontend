@@ -10,6 +10,7 @@ import {
 import { Calendar } from "react-native-calendars";
 import { authorizedRequest } from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import Toast from "react-native-toast-message";
 
 const toDateString = (date) => {
   const y = date.getFullYear();
@@ -152,7 +153,13 @@ export default function CalendarScreen({ navigation }) {
       });
     } catch (e) {
       console.error("Blad kalendarza", e);
-      Alert.alert("Błąd", "Nie udało się załadować kalendarza");
+      Toast.show({
+        type: "info",
+        text1: "Błąd!",
+        text2: "Nie udało się załadować kalendarza",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
     }
   }, [colors.primary, isDark]);
 
@@ -167,7 +174,13 @@ export default function CalendarScreen({ navigation }) {
 
   const markAllAsWateredToday = async () => {
     if (stats.dueWaterToday === 0) {
-      Alert.alert("Brawo!", "Wszystkie rośliny są podlane na bieżąco! 🌱");
+      Toast.show({
+        type: "success",
+        text1: "Brawo!",
+        text2: "Wszystkie rośliny są podlane na bieżąco! 🌱",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -209,13 +222,22 @@ export default function CalendarScreen({ navigation }) {
                 );
 
               await Promise.all(promises);
-              Alert.alert(
-                "Sukces!",
-                `Podlałeś ${stats.dueWaterToday} roślin 🌧️`,
-              );
+              Toast.show({
+                type: "success",
+                text1: "Sukces!",
+                text2: `Podlałeś ${stats.dueWaterToday} roślin 🌧️`,
+                position: "bottom",
+                visibilityTime: 3000,
+              });
               fetchPlantsAndCalculateCalendar();
             } catch (error) {
-              Alert.alert("Błąd", "Nie udało się podlać wszystkich");
+              Toast.show({
+                type: "error",
+                text1: "Błąd",
+                text2: "Nie udało się podlać wszystkich",
+                position: "bottom",
+                visibilityTime: 3000,
+              });
             }
           },
         },
@@ -225,7 +247,13 @@ export default function CalendarScreen({ navigation }) {
 
   const markAllAsFertilizedToday = async () => {
     if (stats.dueFertilizeToday === 0) {
-      Alert.alert("Super!", "Wszystkie rośliny są już nawożone 🌿");
+      Toast.show({
+        type: "success",
+        text1: "Brawo!",
+        text2: "Wszystkie rośliny są już nawożone! 🌱",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -269,15 +297,23 @@ export default function CalendarScreen({ navigation }) {
                 );
 
               await Promise.all(promises);
-
-              Alert.alert(
-                "Gotowe!",
-                `Nawoziłeś ${stats.dueFertilizeToday} roślin 🌱`,
-              );
+              Toast.show({
+                type: "success",
+                text1: "Sukces!",
+                text2: `Nawoziłeś ${stats.dueFertilizeToday} roślin 🌱`,
+                position: "bottom",
+                visibilityTime: 3000,
+              });
 
               fetchPlantsAndCalculateCalendar();
             } catch (error) {
-              Alert.alert("Błąd", "Nie udało się nawozić wszystkich");
+              Toast.show({
+                type: "error",
+                text1: "Błąd",
+                text2: "Nie udało się nawozić wszystkich",
+                position: "bottom",
+                visibilityTime: 3000,
+              });
             }
           },
         },
