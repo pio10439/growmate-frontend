@@ -3,8 +3,6 @@ import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 import PlantDetailsScreen from "../screens/PlantDetailsScreen";
 import axios from "axios";
 
-// --- MOCKI ---
-
 const mockAuthorizedRequest = jest.fn();
 jest.mock("../services/api", () => ({
   authorizedRequest: (...args) => mockAuthorizedRequest(...args),
